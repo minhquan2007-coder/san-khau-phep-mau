@@ -239,6 +239,10 @@
         border: 0;
         border-radius: 0;
         box-shadow: none;
+        cursor: auto;
+      }
+      #theater.cursor-idle,
+      #theater.cursor-idle:fullscreen {
         cursor: none;
       }
       #theater canvas,
@@ -302,6 +306,27 @@
         theater = document.querySelector("#theater"),
         go = document.querySelector("#go"),
         statusEl = document.querySelector("#status");
+      // Show the pointer immediately; hide it after two seconds without movement.
+      let cursorTimer;
+      function showCursor() {
+        clearTimeout(cursorTimer);
+        theater.classList.remove("cursor-idle");
+        cursorTimer = setTimeout(() => {
+          theater.classList.add("cursor-idle");
+        }, 2000);
+      }
+      function releaseCursor() {
+        clearTimeout(cursorTimer);
+        theater.classList.remove("cursor-idle");
+      }
+      theater.addEventListener("pointermove", showCursor, { passive: true });
+      theater.addEventListener("pointerenter", showCursor, { passive: true });
+      theater.addEventListener("pointerleave", releaseCursor);
+      window.addEventListener("blur", releaseCursor);
+      window.addEventListener("focus", showCursor);
+      document.addEventListener("fullscreenchange", showCursor);
+      showCursor();
+
       let arrived = false,
         start = 0,
         active = false,
