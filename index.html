@@ -2,7 +2,7 @@
 <html lang="vi">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Sân khấu phép màu • Cô và bé</title>
     <style>
       * {
@@ -249,7 +249,31 @@
       #theater:fullscreen canvas {
         width: 100%;
         height: 100%;
-        object-fit: fill;
+        object-fit: contain;
+        object-position: center;
+      }
+      /* Keep the whole 16:9 stage visible on phones, tablets, computers and TVs. */
+      main {
+        width: 100%;
+        height: 100%;
+        height: 100dvh;
+      }
+      #theater {
+        background: #100b18;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      #theater canvas {
+        max-width: 100%;
+        max-height: 100%;
+      }
+      @media (hover: none) {
+        #theater,
+        #theater.cursor-idle {
+          cursor: auto;
+        }
       }
     </style>
   </head>
@@ -262,7 +286,7 @@
       <div class="tag">MỘT CHÚT KỲ DIỆU · NGÀN NỤ CƯỜI</div>
     </header>
     <main>
-      <section id="theater" aria-label="Sân khấu ảo thuật tương tác">
+      <section id="theater" aria-label="Sân khấu ảo thuật. Chạm hoặc nhấn một phím để bắt đầu.">
         <canvas
           id="stage"
           width="1600"
@@ -449,10 +473,26 @@
         document.querySelector("#side").disabled = false;
         statusEl.textContent = "Sẵn sàng! Cùng các bé gọi phép màu nào.";
       }
+      async function enterFullscreen() {
+        if (document.fullscreenElement || !theater.requestFullscreen) return;
+        try {
+          await theater.requestFullscreen();
+        } catch {
+          // Some mobile browsers keep the show inside the page instead.
+        }
+      }
+      function startShow() {
+        if (!ready || active) return;
+        enterFullscreen();
+        play();
+      }
+      // A tap or click starts one show; additional taps cannot restart it midway.
+      theater.addEventListener("click", startShow);
+
       async function full() {
         try {
           if (document.fullscreenElement) await document.exitFullscreen();
-          else await theater.requestFullscreen();
+          else await enterFullscreen();
         } catch {
           statusEl.textContent = "Trình duyệt chưa cho phép toàn màn hình.";
         }
@@ -469,6 +509,7 @@
       };
       window.addEventListener("keydown", (e) => {
         if (
+          ["Escape", "Tab", "Shift", "Control", "Alt", "Meta", "F5", "F11", "F12"].includes(e.key) ||
           e.repeat ||
           e.isComposing ||
           e.ctrlKey ||
@@ -479,8 +520,7 @@
           return;
         if (!active) {
           e.preventDefault();
-          if (!document.fullscreenElement) theater.requestFullscreen?.().catch(() => {});
-          play();
+          startShow();
           return;
         }
         if (e.code === "Space") e.preventDefault();
