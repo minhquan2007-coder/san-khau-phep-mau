@@ -286,7 +286,7 @@
       <div class="tag">MỘT CHÚT KỲ DIỆU · NGÀN NỤ CƯỜI</div>
     </header>
     <main>
-      <section id="theater" aria-label="Sân khấu ảo thuật. Chạm hoặc nhấn một phím để bắt đầu.">
+      <section id="theater" aria-label="Sân khấu ảo thuật. Chạm hoặc nhấp chuột để bắt đầu.">
         <canvas
           id="stage"
           width="1600"
@@ -296,7 +296,7 @@
         <div class="caption">
           <div class="eyebrow">CHÀO MỪNG CÁC NHÀ ẢO THUẬT NHÍ</div>
           <h1>Điều kỳ diệu đang chờ…</h1>
-          <p>Nhấn một phím bất kỳ để gọi phép màu</p>
+          <p>Chạm hoặc nhấp chuột để gọi phép màu</p>
         </div>
         <div class="badge">✦ CÔ VÀ BÉ · MAGIC SHOW</div>
         <button id="exit">Thoát toàn màn hình</button>
@@ -519,8 +519,6 @@
         )
           return;
         if (!active) {
-          e.preventDefault();
-          startShow();
           return;
         }
         if (e.code === "Space") e.preventDefault();
@@ -532,10 +530,26 @@
         }
       });
 
+      let portrait = false;
+      function resizeStage() {
+        const width = theater.clientWidth;
+        const height = theater.clientHeight;
+        if (!width || !height) return;
+        portrait = height > width;
+        c.width = portrait ? 1000 : 1600;
+        c.height = portrait ? Math.round(1000 * height / width) : 900;
+      }
+      new ResizeObserver(resizeStage).observe(theater);
+      window.addEventListener("resize", resizeStage);
+      document.addEventListener("fullscreenchange", resizeStage);
+      resizeStage();
+
       function draw(now) {
         const t = now / 1000,
           u = active ? (now - start) / 1000 : 0;
-        g.clearRect(0, 0, 1600, 900);
+        g.clearRect(0, 0, c.width, c.height);
+        g.save();
+        g.scale(c.width / 1600, c.height / 900);
         let bg = g.createRadialGradient(800, 480, 10, 800, 450, 850);
         bg.addColorStop(0, "#443057");
         bg.addColorStop(0.45, "#22152f");
@@ -653,6 +667,13 @@
           }
         }
         g.restore();
+        // Props retain their proportions in the portrait composition.
+        g.restore();
+        g.save();
+        if (portrait) {
+          g.translate(500 - 800 * 0.85, c.height * 610 / 900 - 610 * 0.85);
+          g.scale(0.85, 0.85);
+        }
         // Top hat body and lip
         ellipse(800, hy + 78, 158, 29, "#090711");
         let hat = g.createLinearGradient(690, 0, 910, 0);
@@ -681,7 +702,7 @@
             move = ease((u - 9) / 5.5),
             dir = document.querySelector("#side").value === "right" ? 1 : -1;
           let dash = Math.max(0, Math.min(1, (u - 15.2) / 0.65));
-          let x = 800 + dir * (move * 595 + 650 * dash * dash),
+          let x = 800 + dir * (move * (portrait ? 370 : 595) + 650 * dash * dash),
             y = (hy - 50) * (1 - emerge) + 325 * emerge + Math.sin(t * 1.9) * 12 * emerge,
             hh = (20 + emerge * 385) * (1 - 0.22 * move),
             ww = (hh * img.width) / img.height;
@@ -757,6 +778,7 @@
           reset();
           hidden = true;
         }
+        g.restore();
         requestAnimationFrame(draw);
       }
       requestAnimationFrame(draw);
